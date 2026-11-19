@@ -1,0 +1,22 @@
+# Agents rules
+AGENTS.md
+
+# Virtual Environment & Python cache
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.joblib
+
+# Node & Next.js
+node_modules/
+.next/
+out/
+dist/
+build/
+.env*.local
+
+# OS files
+.DS_Store
+Thumbs.db
