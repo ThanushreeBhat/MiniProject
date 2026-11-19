@@ -467,5 +467,5 @@ python -m ml.training.train_model
 ---
 
 ## License
-Developed as part of the 5th Semester Mini Project on **Neuro-Symbolic AI for Railway Infrastructure**.
+Developed as part of the 5th Semester Mini Project on **Neuro-Symbolic AI for Railway Block Planning**.
 
