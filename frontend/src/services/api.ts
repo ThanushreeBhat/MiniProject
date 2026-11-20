@@ -12,7 +12,8 @@ import {
 } from "../types/api";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_BASE_URL) ||
+  "http://127.0.0.1:8000";
 
 async function fetchFromApi<T>(endpoint: string): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -50,28 +51,38 @@ export const api = {
     }
   },
 
+  // 1. Dashboard
   getDashboard: () => fetchFromApi<DashboardData>("/api/dashboard"),
 
+  // 2. Risks (all)
   getRisks: () => fetchFromApi<RisksResponse>("/api/risks"),
 
+  // 3. Risk by Asset ID
   getRiskByAssetId: (assetId: string) =>
-    fetchFromApi<RiskPrediction[]>(`/api/risks/${encodeURIComponent(assetId)}`),
+    fetchFromApi<RiskPrediction>(`/api/risks/${encodeURIComponent(assetId)}`),
 
+  // 4. Tasks (all)
   getTasks: () => fetchFromApi<TasksResponse>("/api/tasks"),
 
+  // 5. Task by Task ID
   getTaskById: (taskId: string) =>
-    fetchFromApi<MaintenanceTask[]>(`/api/tasks/${encodeURIComponent(taskId)}`),
+    fetchFromApi<MaintenanceTask>(`/api/tasks/${encodeURIComponent(taskId)}`),
 
+  // 6. Schedule (all scheduled blocks)
   getSchedule: () => fetchFromApi<ScheduleResponse>("/api/schedule"),
 
+  // 7. Unscheduled tasks
   getUnscheduled: () => fetchFromApi<UnscheduledResponse>("/api/unscheduled"),
 
+  // 8. Explanations (all)
   getExplanations: () => fetchFromApi<ExplanationsResponse>("/api/explanations"),
 
+  // 9. Explanation by Task ID
   getExplanationByTaskId: (taskId: string) =>
-    fetchFromApi<TaskExplanation[]>(
+    fetchFromApi<TaskExplanation>(
       `/api/explanations/${encodeURIComponent(taskId)}`
     ),
 
+  // 10. Validation report
   getValidation: () => fetchFromApi<ValidationReport>("/api/validation"),
 };
