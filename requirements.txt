@@ -1,0 +1,10 @@
+pandas
+numpy
+scikit-learn
+joblib
+ortools
+fastapi
+uvicorn[standard]
+pydantic
+pytest
+python-dateutil

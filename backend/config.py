@@ -1,57 +1,59 @@
+
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+# Root directory of the RailBlock project
+BASE_DIR = Path(__file__).resolve().parents[1]
 
+# Data directories
 DATA_DIR = BASE_DIR / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 SYNTHETIC_DATA_DIR = DATA_DIR / "synthetic"
+PROCESSED_DATA_DIR = DATA_DIR / "processed"
 
+# ML directories
+ML_DIR = BASE_DIR / "ml"
+MODEL_DIR = ML_DIR / "models"
+PREDICTION_DIR = ML_DIR / "outputs"
+
+MODEL_FILE = MODEL_DIR / "risk_random_forest.joblib"
+
+# Optimization and explanation
+OPTIMIZATION_DIR = BASE_DIR / "optimization"
+EXPLANATION_DIR = BASE_DIR / "explanation"
+
+# Backend
+BACKEND_DIR = BASE_DIR / "backend"
+
+# Output directory
 OUTPUT_DIR = BASE_DIR / "outputs"
-MODEL_DIR = BASE_DIR / "ml" / "models"
-ML_OUTPUT_DIR = BASE_DIR / "ml" / "outputs"
 
-# Source data files
+# Input files
 TASK_FILE = RAW_DATA_DIR / "maintenance_tasks.csv"
 BLOCK_FILE = RAW_DATA_DIR / "block_availability.csv"
 TRAIN_FILE = RAW_DATA_DIR / "train_movements.csv"
+
+# ML feature files
 ASSET_FEATURE_FILE = SYNTHETIC_DATA_DIR / "asset_features.csv"
-RISK_TRAINING_FILE = SYNTHETIC_DATA_DIR / "asset_features.csv"
+ASSET_MASTER_FILE = SYNTHETIC_DATA_DIR / "asset_master.csv"
+MAINTENANCE_HISTORY_FILE = (
+    SYNTHETIC_DATA_DIR / "maintenance_history.csv"
+)
+RISK_TRAINING_FILE = (
+    SYNTHETIC_DATA_DIR / "risk_training_dataset.csv"
+)
 
-# Model files
-MODEL_FILE = MODEL_DIR / "risk_random_forest.joblib"
-
-# Pipeline Output files
+# Main output files
 RISK_OUTPUT_FILE = OUTPUT_DIR / "risk_predictions.csv"
 CANDIDATE_OUTPUT_FILE = OUTPUT_DIR / "candidate_assignments.csv"
 SCHEDULE_OUTPUT_FILE = OUTPUT_DIR / "optimized_schedule.csv"
 UNSCHEDULED_OUTPUT_FILE = OUTPUT_DIR / "unscheduled_tasks.csv"
-VALIDATION_OUTPUT_FILE = OUTPUT_DIR / "validation_report.json"
 EXPLANATION_OUTPUT_FILE = OUTPUT_DIR / "task_explanations.csv"
+VALIDATION_OUTPUT_FILE = OUTPUT_DIR / "validation_report.json"
 
 
 def create_directories():
+    """Create output directories if they do not exist."""
+
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    ML_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
-
-# Initialize output directories and safe fallback placeholder headers
-create_directories()
-
-if not RISK_OUTPUT_FILE.exists():
-    RISK_OUTPUT_FILE.write_text("asset_id,predicted_failure_probability,risk_level\n", encoding="utf-8")
-
-if not CANDIDATE_OUTPUT_FILE.exists():
-    CANDIDATE_OUTPUT_FILE.write_text("task_id,block_window_id,section_id,earliest_start,latest_start,duration_min\n", encoding="utf-8")
-
-if not SCHEDULE_OUTPUT_FILE.exists():
-    SCHEDULE_OUTPUT_FILE.write_text("task_id,block_window_id,section_id,scheduled_start,scheduled_end,duration_min\n", encoding="utf-8")
-
-if not UNSCHEDULED_OUTPUT_FILE.exists():
-    UNSCHEDULED_OUTPUT_FILE.write_text("task_id,section_id,reason_code,reason\n", encoding="utf-8")
-
-if not EXPLANATION_OUTPUT_FILE.exists():
-    EXPLANATION_OUTPUT_FILE.write_text("task_id,status,explanation,priority_score\n", encoding="utf-8")
-
-if not VALIDATION_OUTPUT_FILE.exists():
-    VALIDATION_OUTPUT_FILE.write_text('{"validation_passed": true, "total_violations": 0, "checks": {}, "violations": []}\n', encoding="utf-8")
+    PREDICTION_DIR.mkdir(parents=True, exist_ok=True)
+    PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)

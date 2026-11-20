@@ -1,22 +1,96 @@
-# Agents rules
-AGENTS.md
 
-# Virtual Environment & Python cache
-venv/
-.venv/
+# ==============================
+# Python
+# ==============================
 __pycache__/
 *.py[cod]
 *$py.class
-*.joblib
+*.so
 
-# Node & Next.js
-node_modules/
-.next/
-out/
-dist/
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python packaging
 build/
-.env*.local
+dist/
+*.egg-info/
 
+# ==============================
+# Jupyter
+# ==============================
+.ipynb_checkpoints/
+
+# ==============================
+# Environment variables / secrets
+# ==============================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+
+# ==============================
+# IDE and editor
+# ==============================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ==============================
+# Logs
+# ==============================
+*.log
+logs/
+
+# ==============================
 # OS files
+# ==============================
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# ==============================
+# Generated outputs
+# ==============================
+outputs/*
+!outputs/.gitkeep
+
+# ==============================
+# ML temporary files
+# ==============================
+*.pkl.tmp
+*.joblib.tmp
+*.model.tmp
+
+# ==============================
+# Frontend dependencies
+# ==============================
+node_modules/
+.next/
+.nuxt/
+dist/
+coverage/
+
+# Frontend environment files
+.env.local
+.env.development.local
+.env.production.local
+
+# ==============================
+# Testing and coverage
+# ==============================
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ==============================
+# Temporary files
+# ==============================
+*.tmp
+*.bak
+*.temp
