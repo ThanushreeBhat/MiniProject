@@ -993,44 +993,54 @@ function SectionWorkspace(props: WorkspaceProps) {
 }
 
 export default function App() {
-  const [activeNav, setActiveNavState] = useState<string>("Dashboard");
+  const [activeNav, setActiveNavState] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash.replace("#", "").toLowerCase();
+      if (hash === "risks") return "Risks";
+      if (hash === "tasks") return "Tasks";
+      if (hash === "schedule") return "Schedule";
+      if (hash === "validation") return "Validation";
+    }
+    return "Dashboard";
+  });
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    const onHashChange = () => {
       const hash = window.location.hash.replace("#", "").toLowerCase();
       if (hash === "risks") setActiveNavState("Risks");
       else if (hash === "tasks") setActiveNavState("Tasks");
       else if (hash === "schedule") setActiveNavState("Schedule");
       else if (hash === "validation") setActiveNavState("Validation");
-    }
+      else setActiveNavState("Dashboard");
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
   const setActiveNav = (label: string) => {
     setActiveNavState(label);
     if (typeof window !== "undefined") {
-      window.location.hash = label.toLowerCase();
+      window.history.pushState(null, "", `#${label.toLowerCase()}`);
     }
   };
 
-  const [message, setMessage] = useState("");
-  const [toast, setToast] = useState("");
+  const [toast] = useState("");
   const [apiData, setApiData] = useState<ApiState>({});
-  const [apiStatus, setApiStatus] = useState<Partial<Record<ApiKey, "loading" | "ok" | "error">>>(
-    {},
+  const [apiStatus, setApiStatus] = useState<Partial<Record<ApiKey, "loading" | "ok" | "error">>>(() =>
+    Object.fromEntries((Object.keys(endpoints) as ApiKey[]).map((key) => [key, "loading"])),
   );
   const [detail, setDetail] = useState<{ title: string; data: unknown } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const notify = (text: string) => {
-    setToast(text);
-    window.setTimeout(() => setToast(""), 1800);
-  };
-
   useEffect(() => {
     let cancelled = false;
     const keys = Object.keys(endpoints) as ApiKey[];
-    setApiStatus(Object.fromEntries(keys.map((key) => [key, "loading"])));
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setApiStatus(Object.fromEntries(keys.map((key) => [key, "loading"])));
+      }
+    });
 
     void Promise.all(
       keys.map(async (key) => {
@@ -1190,7 +1200,11 @@ export default function App() {
         ? "Schedule"
         : "Active tasks";
 
-  const riskBars = risks.slice(0, 5);
+  const riskBars = useMemo(() => {
+    return [...risks]
+      .sort((a, b) => severityScore(b) - severityScore(a))
+      .slice(0, 5);
+  }, [risks]);
 
   // 18 bars for wider schedule coverage plot
   const chartItems = useMemo(() => {
@@ -1233,11 +1247,11 @@ export default function App() {
       <section className="dashboard-shell">
         <div className="dashboard-glow" />
 
-        {/* 1:1 Figma Header */}
+        {/* Header */}
         <header className="finance-header">
           <a className="paykey-logo" href="#" aria-label="Operations home">
-            <span className="logo-orb">X</span>
-            <strong>Ops Key</strong>
+            <span className="logo-orb">RB</span>
+            <strong>RailBlock</strong>
           </a>
 
           <nav className="finance-nav" aria-label="Finance navigation">
@@ -1355,6 +1369,7 @@ export default function App() {
                     ["asset_id", "id", "asset", "name"],
                     `Risk ${index + 1}`,
                   );
+                  const name = readText(risk, ["asset_name", "name", "asset_id", "id"], id);
                   const score = severityScore(risk);
                   return (
                     <button
@@ -1362,23 +1377,39 @@ export default function App() {
                       key={`${id}-${index}`}
                       onClick={() => loadDetail("risks", id)}
                     >
-                      <small>
-                        {clip(readText(risk, ["asset_name", "name", "asset_id", "id"], id), 18)}
-                      </small>
-                      <i style={{ width: `${Math.max(16, score)}%` }} />
-                      <span>{score}%</span>
+                      <span className="risk-row-label" title={`${id} - ${name}`}>
+                        <strong>{clip(name, 22)}</strong>
+                        <small>{id}</small>
+                      </span>
+                      <div className="risk-bar-wrapper">
+                        <div
+                          className="risk-bar-fill"
+                          style={{ width: `${Math.max(12, score)}%` }}
+                        >
+                          <span>{score}%</span>
+                        </div>
+                      </div>
                     </button>
                   );
                 })}
               </div>
               <div className="insight-axis">
-                <span>0</span>
-                <span>20</span>
-                <span>40</span>
-                <span>60</span>
-                <span>80</span>
-                <span>100</span>
+                <span className="axis-spacer" />
+                <div className="axis-ticks">
+                  <span>0%</span>
+                  <span>20%</span>
+                  <span>40%</span>
+                  <span>60%</span>
+                  <span>80%</span>
+                  <span>100%</span>
+                </div>
               </div>
+              <button
+                className="card-footer-action"
+                onClick={() => setActiveNav("Risks")}
+              >
+                View all risks <span>→</span>
+              </button>
             </article>
 
             {/* BOX 4 (Column 3 Top): Active Tasks */}
@@ -1431,6 +1462,12 @@ export default function App() {
                   );
                 })}
               </div>
+              <button
+                className="card-footer-action"
+                onClick={() => setActiveNav("Tasks")}
+              >
+                View all tasks <span>→</span>
+              </button>
             </article>
 
             {/* BOX 7 (Column 4 Top): Validation status */}
@@ -1473,9 +1510,9 @@ export default function App() {
               </div>
               <div className="bar-chart">
                 <div className="y-axis">
-                  <span>30K</span>
-                  <span>20K</span>
-                  <span>10K</span>
+                  <span>50</span>
+                  <span>35</span>
+                  <span>20</span>
                   <span>0</span>
                 </div>
                 <div className="chart-plot">
