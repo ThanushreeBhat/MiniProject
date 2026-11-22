@@ -1,0 +1,16 @@
+# Pyrefly Configuration for RailBlock
+
+# Include the project root in search paths so imports like `backend` and `ml` resolve properly
+search-path = ["."]
+
+# Ignore missing type stubs for third-party libraries
+ignore-missing-imports = [
+    "matplotlib.*",
+    "sklearn.*",
+    "joblib.*",
+]
+
+[errors]
+# Downgrade unresolved imports to warnings or ignore if needed
+missing-import = "warning"
+

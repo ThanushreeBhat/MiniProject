@@ -1,1 +1,23 @@
-{"validation_passed": true, "total_violations": 0, "checks": {}, "violations": []}
+{
+    "solver_output": "E:\\SCEM Notes\\5th sem\\Mini Project\\Neuro_symbolic AI\\outputs\\optimized_schedule.csv",
+    "total_tasks": 108,
+    "scheduled_tasks": 64,
+    "unscheduled_tasks": 44,
+    "schedule_coverage_percent": 59.26,
+    "total_violations": 0,
+    "validation_passed": true,
+    "violations": [],
+    "checks": {
+        "duplicate_tasks": true,
+        "task_timing": true,
+        "deadline": true,
+        "duration": true,
+        "section_matching": true,
+        "block_availability": true,
+        "block_timing": true,
+        "maintenance_overlap": true,
+        "train_conflicts": true,
+        "task_existence": true,
+        "block_existence": true
+    }
+}
