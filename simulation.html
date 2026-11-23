@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RailBlock</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #111319;
+      color: #e2e8f0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Minimalist Dark Header */
+    .brand-header {
+      position: absolute;
+      top: 18px;
+      left: 28px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #00e5ff;
+      display: grid;
+      place-items: center;
+      color: #0b0d14;
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: -0.5px;
+      box-shadow: 0 0 16px rgba(0, 229, 255, 0.45);
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: #ffffff;
+    }
+
+    /* Controls Overlay */
+    .controls-overlay {
+      position: absolute;
+      top: 18px;
+      right: 28px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .metro-btn {
+      height: 38px;
+      padding: 0 18px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 20px;
+      background: rgba(28, 33, 48, 0.85);
+      backdrop-filter: blur(12px);
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      transition: all 0.2s ease;
+    }
+
+    .metro-btn:hover {
+      background: rgba(45, 53, 76, 0.95);
+      border-color: rgba(255, 255, 255, 0.32);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+    }
+
+    .metro-btn:active {
+      transform: translateY(1px);
+    }
+
+    .metro-btn.secondary {
+      background: rgba(18, 21, 30, 0.7);
+      color: #94a3b8;
+    }
+
+    .metro-btn.secondary:hover {
+      background: rgba(28, 33, 48, 0.9);
+      color: #ffffff;
+    }
+
+    .metro-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    /* Screen & Multi-Page View Containers */
+    .screen-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sim-page {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: scale(0.98);
+      z-index: 1;
+    }
+
+    .sim-page.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: scale(1);
+      z-index: 10;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 2;
+    }
+
+    /* Center Edge Navigation Arrow Buttons */
+    .nav-arrow-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 110;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: rgba(28, 33, 48, 0.88);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      outline: none;
+    }
+
+    .nav-arrow-btn.right-center {
+      right: 28px;
+    }
+
+    .nav-arrow-btn.left-center {
+      left: 28px;
+    }
+
+    .nav-arrow-btn:hover {
+      background: rgba(45, 53, 76, 0.98);
+      border-color: #00e5ff;
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.5), 0 6px 24px rgba(0, 0, 0, 0.6);
+      transform: translateY(-50%) scale(1.12);
+    }
+
+    .nav-arrow-btn:active {
+      transform: translateY(-50%) scale(0.95);
+    }
+
+    .nav-arrow-btn svg {
+      width: 26px;
+      height: 26px;
+      fill: currentColor;
+      transition: transform 0.25s ease;
+    }
+
+    .nav-arrow-btn.right-center:hover svg {
+      transform: translateX(3px);
+    }
+
+    .nav-arrow-btn.left-center:hover svg {
+      transform: translateX(-3px);
+    }
+
+    /* Navigation Hover Tooltips */
+    .nav-tooltip {
+      position: absolute;
+      top: 50%;
+      background: rgba(18, 21, 30, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #f1f5f9;
+      padding: 7px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+    }
+
+    .right-tooltip {
+      right: 64px;
+      transform: translateY(-50%) translateX(8px);
+    }
+
+    .left-tooltip {
+      left: 64px;
+      transform: translateY(-50%) translateX(-8px);
+    }
+
+    .nav-arrow-btn:hover .nav-tooltip {
+      opacity: 1;
+      transform: translateY(-50%) translateX(0);
+    }
+
+    /* Minimal Scenario Badges */
+    .scenario-label {
+      position: absolute;
+      bottom: 24px;
+      left: 28px;
+      z-index: 5;
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      background: rgba(18, 21, 30, 0.85);
+      backdrop-filter: blur(12px);
+      padding: 8px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    .scenario-label .badge-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+    }
+
+    .badge-top {
+      background: #f43f5e;
+      box-shadow: 0 0 10px rgba(244, 63, 94, 0.7);
+    }
+
+    .badge-bottom {
+      background: #10b981;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Brand Title -->
+  <header class="brand-header">
+    <div class="brand-logo">RB</div>
+    <span class="brand-title">RailBlock</span>
+  </header>
+
+  <div class="screen-container">
+    <!-- Page 1: Scenario 1 (3 Physical Maintenance Blocks on Track) -->
+    <div class="sim-page active" id="page1">
+      <!-- Scenario 1 Controls -->
+      <div class="controls-overlay">
+        <button id="btnPlay1" class="metro-btn">
+          <svg id="playIcon1" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <span id="playText1">Play</span>
+        </button>
+        <button id="btnReset1" class="metro-btn secondary" title="Reset Scenario 1">
+          <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+          <span>Reset</span>
+        </button>
+      </div>
+
+      <canvas id="canvasTop"></canvas>
+      <div class="scenario-label">
+        <span class="badge-dot badge-top"></span>
+        <span>Scenario 1: 3 Physical Track Blocks (Extended Delay)</span>
+      </div>
+      <!-- Right-Center Navigation Arrow to Scenario 2 -->
+      <button id="btnGoToPage2" class="nav-arrow-btn right-center" title="Go to Scenario 2 (RailBlock)" aria-label="Go to Scenario 2">
+        <span class="nav-tooltip right-tooltip">Scenario 2: RailBlock &#x2192;</span>
+        <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+      </button>
+    </div>
+
+    <!-- Page 2: Scenario 2 (RailBlock Single Block) -->
+    <div class="sim-page" id="page2">
+      <!-- Scenario 2 Controls -->
+      <div class="controls-overlay">
+        <button id="btnPlay2" class="metro-btn">
+          <svg id="playIcon2" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <span id="playText2">Play</span>
+        </button>
+        <button id="btnReset2" class="metro-btn secondary" title="Reset Scenario 2">
+          <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+          <span>Reset</span>
+        </button>
+      </div>
+
+      <canvas id="canvasBottom"></canvas>
+      <div class="scenario-label">
+        <span class="badge-dot badge-bottom"></span>
+        <span>Scenario 2: RailBlock Single Block (Fast Clearance)</span>
+      </div>
+      <!-- Left-Center Navigation Arrow to Scenario 1 -->
+      <button id="btnGoToPage1" class="nav-arrow-btn left-center" title="Go to Scenario 1 (3 Physical Blocks)" aria-label="Go to Scenario 1">
+        <span class="nav-tooltip left-tooltip">&#x2190; Scenario 1: 3 Physical Blocks</span>
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41L10.83 12l4.58 4.59L14 18l-6-6 6-6z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // Mini Metro Night Mode Engine
+    // -------------------------------------------------------------
+    const canvasTop = document.getElementById("canvasTop");
+    const ctxTop = canvasTop.getContext("2d");
+
+    const canvasBottom = document.getElementById("canvasBottom");
+    const ctxBottom = canvasBottom.getContext("2d");
+
+    const btnPlay1 = document.getElementById("btnPlay1");
+    const playText1 = document.getElementById("playText1");
+    const playIcon1 = document.getElementById("playIcon1");
+    const btnReset1 = document.getElementById("btnReset1");
+
+    const btnPlay2 = document.getElementById("btnPlay2");
+    const playText2 = document.getElementById("playText2");
+    const playIcon2 = document.getElementById("playIcon2");
+    const btnReset2 = document.getElementById("btnReset2");
+
+    let isPlaying1 = false;
+    let isPlaying2 = false;
+    let simTime1 = 0;
+    let simTime2 = 0;
+    let lastTimestamp = 0;
+
+    // Mini Metro Dark Mode Color Palette
+    const COLORS = {
+      bg: "#111319",
+      topTrack: "#00e5ff",          // Glowing Electric Cyan
+      topTrackGlow: "rgba(0, 229, 255, 0.22)",
+      bottomTrack: "#c084fc",       // Glowing Neon Violet
+      bottomTrackGlow: "rgba(192, 132, 252, 0.22)",
+      trainTop: "#0ea5e9",
+      trainBottom: "#a855f7",
+      stationFill: "#ffffff",
+      stationCenter: "#111319",
+      signalRed: "#ff334b",
+      signalRedGlow: "rgba(255, 51, 75, 0.8)",
+      signalGreen: "#10b981",
+      signalGreenGlow: "rgba(16, 185, 129, 0.8)",
+      hazardAmber: "#f59e0b",
+      hazardOrange: "#f97316",
+      hazardRose: "#f43f5e",
+    };
+
+    // Responsive Canvas Resizing
+    function resizeCanvases() {
+      const dpr = window.devicePixelRatio || 1;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      [canvasTop, canvasBottom].forEach(canvas => {
+        const rect = canvas.parentElement ? canvas.parentElement.getBoundingClientRect() : { width: w, height: h };
+        const width = (rect.width > 0) ? rect.width : w;
+        const height = (rect.height > 0) ? rect.height : h;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        const ctx = canvas.getContext("2d");
+        ctx.resetTransform?.();
+        ctx.scale(dpr, dpr);
+      });
+      render();
+    }
+    window.addEventListener("resize", resizeCanvases);
+
+    // Multi-page Navigation Logic
+    let currentPage = 1;
+    const page1 = document.getElementById("page1");
+    const page2 = document.getElementById("page2");
+    const btnGoToPage2 = document.getElementById("btnGoToPage2");
+    const btnGoToPage1 = document.getElementById("btnGoToPage1");
+
+    function switchPage(pageNumber) {
+      if (pageNumber === currentPage) return;
+      currentPage = pageNumber;
+      if (currentPage === 1) {
+        page1.classList.add("active");
+        page2.classList.remove("active");
+      } else {
+        page2.classList.add("active");
+        page1.classList.remove("active");
+      }
+      resizeCanvases();
+    }
+
+    if (btnGoToPage2) {
+      btnGoToPage2.addEventListener("click", () => switchPage(2));
+    }
+    if (btnGoToPage1) {
+      btnGoToPage1.addEventListener("click", () => switchPage(1));
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight") switchPage(2);
+      if (e.key === "ArrowLeft") switchPage(1);
+    });
+
+    // -------------------------------------------------------------
+    // Scenario Configurations & Parameters
+    // -------------------------------------------------------------
+    // Block starts at x = 0.40 (Traffic signal placed right at 0.40)
+    // Scenario 1: 3 physical rectangular blocks sitting ON the track at 0.48, 0.61, 0.74
+    const SCENARIO_1 = {
+      trainSpeed: 210,     // 50% faster (from 140)
+      signalXRatio: 0.225, // Traffic light placed right near first shape (Station 1 at 0.20)
+      haltXRatio: 0.185,   // Train halts right before the signal
+      blocks: [
+        {
+          id: "MB-01",
+          name: "Track Geometry",
+          xRatio: 0.48,
+          start: 1.25,
+          duration: 2.5,   // 50% less (from 5.0)
+          color: "#f59e0b",
+          width: 58,
+          height: 30,
+        },
+        {
+          id: "MB-02",
+          name: "OHE Traction Wire",
+          xRatio: 0.62,
+          start: 1.25,
+          duration: 4.25,  // 50% less (from 8.5)
+          color: "#f97316",
+          width: 58,
+          height: 30,
+        },
+        {
+          id: "MB-03",
+          name: "Signal Interlocking",
+          xRatio: 0.76,
+          start: 1.25,
+          duration: 6.0,   // 50% less (from 12.0)
+          color: "#f43f5e",
+          width: 58,
+          height: 30,
+        },
+      ],
+      greenTime: 7.4,      // Turns green once all 3 are cleared (50% less from 14.8)
+    };
+
+    // Scenario 2: 1 consolidated physical rectangular block at x = 0.58
+    const SCENARIO_2 = {
+      trainSpeed: 210,     // 50% faster (from 140)
+      signalXRatio: 0.225, // Traffic light placed right near first shape (Station 1 at 0.20)
+      haltXRatio: 0.185,   // Train halts right before the signal
+      blocks: [
+        {
+          id: "RB-OPT",
+          name: "Consolidated Block",
+          xRatio: 0.58,
+          start: 1.25,
+          duration: 1.6,   // 50% less (from 3.2)
+          color: "#10b981",
+          width: 76,
+          height: 32,
+        },
+      ],
+      greenTime: 3.0,      // Turns green rapidly (50% less from 6.0)
+    };
+
+    // Train States
+    let train1 = { x: 40, v: SCENARIO_1.trainSpeed };
+    let train2 = { x: 40, v: SCENARIO_2.trainSpeed };
+
+    function formatHours(hrs) {
+      return `${hrs.toFixed(1)} hrs`;
+    }
+
+    function resetScenario1() {
+      simTime1 = 0;
+      train1 = { x: 40, v: SCENARIO_1.trainSpeed };
+      isPlaying1 = false;
+      playText1.innerText = "Play";
+      playIcon1.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      render();
+    }
+
+    function resetScenario2() {
+      simTime2 = 0;
+      train2 = { x: 40, v: SCENARIO_2.trainSpeed };
+      isPlaying2 = false;
+      playText2.innerText = "Play";
+      playIcon2.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      render();
+    }
+
+    function resetSimulation() {
+      resetScenario1();
+      resetScenario2();
+    }
+
+    // -------------------------------------------------------------
+    // Metro Track Geometry (Smooth curved paths)
+    // -------------------------------------------------------------
+    function getTrackPoints(width, height) {
+      const y = height * 0.54;
+      return [
+        { x: width * 0.04, y: y },
+        { x: width * 0.20, y: y },
+        { x: width * 0.28, y: y - 22 },
+        { x: width * 0.82, y: y - 22 },
+        { x: width * 0.90, y: y },
+        { x: width * 0.96, y: y },
+      ];
+    }
+
+    function getYForX(points, x) {
+      if (x <= points[1].x) return points[0].y;
+      if (x >= points[4].x) return points[5].y;
+      if (x >= points[2].x && x <= points[3].x) return points[2].y;
+
+      if (x > points[1].x && x < points[2].x) {
+        const t = (x - points[1].x) / (points[2].x - points[1].x);
+        return points[1].y + (points[2].y - points[1].y) * (0.5 - 0.5 * Math.cos(Math.PI * t));
+      }
+      if (x > points[3].x && x < points[4].x) {
+        const t = (x - points[3].x) / (points[4].x - points[3].x);
+        return points[3].y + (points[4].y - points[3].y) * (0.5 - 0.5 * Math.cos(Math.PI * t));
+      }
+      return points[0].y;
+    }
+
+    // Draw Glowing Metro Track
+    function drawTrack(ctx, points, color, glowColor) {
+      ctx.save();
+
+      // Outer luminous glow
+      ctx.strokeStyle = glowColor;
+      ctx.lineWidth = 22;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+      ctx.stroke();
+
+      // Solid track core
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 11;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Draw Stations (Clean white luminous geometric shapes)
+    function drawStation(ctx, type, x, y) {
+      ctx.save();
+      ctx.fillStyle = COLORS.stationFill;
+      ctx.strokeStyle = COLORS.stationCenter;
+      ctx.lineWidth = 4;
+      ctx.shadowColor = "rgba(255, 255, 255, 0.4)";
+      ctx.shadowBlur = 10;
+
+      if (type === "circle") {
+        ctx.beginPath();
+        ctx.arc(x, y, 13, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      } else if (type === "triangle") {
+        ctx.beginPath();
+        const r = 15;
+        for (let i = 0; i < 3; i++) {
+          const angle = (i * 2 * Math.PI) / 3 - Math.PI / 2;
+          const px = x + r * Math.cos(angle);
+          const py = y + r * Math.sin(angle);
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      } else if (type === "square") {
+        ctx.beginPath();
+        ctx.rect(x - 12, y - 12, 24, 24);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Draw Railway Signal at Start of Block
+    function drawSignal(ctx, x, y, isGreen) {
+      ctx.save();
+
+      // Signal pole
+      ctx.strokeStyle = "#475569";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x, y + 8);
+      ctx.lineTo(x, y - 44);
+      ctx.stroke();
+
+      // Signal housing
+      ctx.fillStyle = "#161b26";
+      ctx.strokeStyle = "#334155";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(x - 11, y - 68, 22, 32, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      // Red lens (upper)
+      const redOn = !isGreen;
+      ctx.fillStyle = redOn ? COLORS.signalRed : "rgba(80, 20, 25, 0.6)";
+      ctx.shadowColor = redOn ? COLORS.signalRedGlow : "transparent";
+      ctx.shadowBlur = redOn ? 16 : 0;
+      ctx.beginPath();
+      ctx.arc(x, y - 56, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Green lens (lower)
+      const greenOn = isGreen;
+      ctx.fillStyle = greenOn ? COLORS.signalGreen : "rgba(10, 50, 35, 0.6)";
+      ctx.shadowColor = greenOn ? COLORS.signalGreenGlow : "transparent";
+      ctx.shadowBlur = greenOn ? 16 : 0;
+      ctx.beginPath();
+      ctx.arc(x, y - 42, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // -------------------------------------------------------------
+    // Draw 3-Coach Thicker & Longer Train
+    // -------------------------------------------------------------
+    function draw3CoachTrain(ctx, leadX, points, color) {
+      ctx.save();
+
+      const coachLength = 48;
+      const coachHeight = 36;
+      const couplingGap = 6;
+      const totalCoaches = 3;
+
+      for (let c = 0; c < totalCoaches; c++) {
+        // Distance back from front lead position
+        const coachCenterX = leadX - c * (coachLength + couplingGap);
+        const coachCenterY = getYForX(points, coachCenterX);
+
+        // Draw flexible black coupling connector between coaches
+        if (c > 0) {
+          const prevX = leadX - (c - 1) * (coachLength + couplingGap) - coachLength / 2;
+          const connY = getYForX(points, prevX - couplingGap / 2);
+          ctx.strokeStyle = "#0b0e14";
+          ctx.lineWidth = 10;
+          ctx.beginPath();
+          ctx.moveTo(prevX, connY);
+          ctx.lineTo(coachCenterX + coachLength / 2, connY);
+          ctx.stroke();
+        }
+
+        // Coach Capsule Body
+        ctx.shadowColor = "rgba(0, 0, 0, 0.75)";
+        ctx.shadowBlur = 14;
+        ctx.shadowOffsetY = 5;
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(
+          coachCenterX - coachLength / 2,
+          coachCenterY - coachHeight / 2,
+          coachLength,
+          coachHeight,
+          11
+        );
+        ctx.fill();
+
+        // Front Headlight on Coach 0 (Lead Locomotive)
+        if (c === 0) {
+          ctx.fillStyle = "#ffffff";
+          ctx.shadowColor = "#ffffff";
+          ctx.shadowBlur = 16;
+          ctx.beginPath();
+          ctx.arc(coachCenterX + coachLength / 2 - 5, coachCenterY, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Passenger Windows (3 illuminated dot windows per coach)
+        ctx.fillStyle = "#ffffff";
+        ctx.shadowColor = "transparent";
+        [-12, 0, 12].forEach(offset => {
+          ctx.beginPath();
+          ctx.arc(coachCenterX + offset, coachCenterY, 3.8, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      ctx.restore();
+    }
+
+    // -------------------------------------------------------------
+    // Draw Physical Rectangular Barrier Blocks Directly ON Track
+    // -------------------------------------------------------------
+    function drawPhysicalBarrierBlocks(ctx, scenario, points, width, currentSimTime) {
+      scenario.blocks.forEach((block, index) => {
+        const blockX = width * block.xRatio;
+        const blockY = getYForX(points, blockX);
+
+        // Check if block is active
+        let prog = 0;
+        if (currentSimTime > block.start) {
+          prog = Math.min(1, (currentSimTime - block.start) / block.duration);
+        }
+        const isDone = prog >= 1;
+
+        ctx.save();
+
+        if (isDone) {
+          // When maintenance finishes, the barrier block is cleared off the track
+          // Draw subtle cleared indicator
+          ctx.globalAlpha = 0.35;
+          ctx.strokeStyle = "#10b981";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(blockX - block.width / 2, blockY - block.height / 2, block.width, block.height);
+          ctx.setLineDash([]);
+
+          ctx.fillStyle = "#10b981";
+          ctx.font = "bold 11px 'DM Sans', sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("✓ CLEARED", blockX, blockY + 4);
+        } else {
+          // Physical Obstacle Sitting Directly ON Rails
+          ctx.shadowColor = "rgba(0, 0, 0, 0.75)";
+          ctx.shadowBlur = 14;
+          ctx.shadowOffsetY = 4;
+
+          // Main Rectangular Barrier Body
+          ctx.fillStyle = "#181b24";
+          ctx.strokeStyle = block.color;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.roundRect(blockX - block.width / 2, blockY - block.height / 2, block.width, block.height, 5);
+          ctx.fill();
+          ctx.stroke();
+
+          // Industrial Diagonal Hazard Stripes across the physical box
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(blockX - block.width / 2 + 2, blockY - block.height / 2 + 2, block.width - 4, block.height - 4, 3);
+          ctx.clip();
+
+          ctx.strokeStyle = block.color;
+          ctx.lineWidth = 5;
+          for (let sx = -block.height; sx < block.width + block.height; sx += 12) {
+            ctx.beginPath();
+            ctx.moveTo(blockX - block.width / 2 + sx, blockY - block.height / 2);
+            ctx.lineTo(blockX - block.width / 2 + sx + block.height, blockY + block.height / 2);
+            ctx.stroke();
+          }
+          ctx.restore();
+
+          // Flashing Amber Warning Beacon on Top of Barrier Box
+          const flash = Math.sin(currentSimTime * 7 + index) > 0;
+          ctx.fillStyle = flash ? block.color : "#475569";
+          ctx.shadowColor = flash ? block.color : "transparent";
+          ctx.shadowBlur = flash ? 14 : 0;
+          ctx.beginPath();
+          ctx.arc(blockX, blockY - block.height / 2 - 5, 4, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Obstruction Label & Countdown Tag Above Box
+          ctx.shadowColor = "transparent";
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 11px 'DM Sans', sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(`${block.name}`, blockX, blockY - block.height / 2 - 16);
+
+          // Progress pill beneath
+          const remaining = Math.max(0, block.duration - (currentSimTime - block.start));
+          ctx.fillStyle = block.color;
+          ctx.font = "600 10px 'DM Sans', sans-serif";
+          ctx.fillText(`${remaining.toFixed(1)} hrs remaining`, blockX, blockY + block.height / 2 + 15);
+        }
+
+        ctx.restore();
+      });
+    }
+
+    // -------------------------------------------------------------
+    // Main Render Loop
+    // -------------------------------------------------------------
+    function render() {
+      const wTop = canvasTop.width / (window.devicePixelRatio || 1);
+      const hTop = canvasTop.height / (window.devicePixelRatio || 1);
+      const wBot = canvasBottom.width / (window.devicePixelRatio || 1);
+      const hBot = canvasBottom.height / (window.devicePixelRatio || 1);
+
+      // Clear dark canvases
+      ctxTop.clearRect(0, 0, wTop, hTop);
+      ctxBottom.clearRect(0, 0, wBot, hBot);
+
+      // 1. TOP SIMULATION (3 Physical Blocks on Cyan Track)
+      const pointsTop = getTrackPoints(wTop, hTop);
+      drawTrack(ctxTop, pointsTop, COLORS.topTrack, COLORS.topTrackGlow);
+      drawStation(ctxTop, "circle", pointsTop[1].x, pointsTop[1].y);
+      drawStation(ctxTop, "triangle", pointsTop[4].x, pointsTop[4].y);
+
+      // Traffic light at start of block zone
+      const isGreen1 = simTime1 >= SCENARIO_1.greenTime;
+      const sigX1 = wTop * SCENARIO_1.signalXRatio;
+      const sigY1 = getYForX(pointsTop, sigX1);
+      drawSignal(ctxTop, sigX1, sigY1, isGreen1);
+
+      // 3 Physical Barrier Blocks directly on rails
+      drawPhysicalBarrierBlocks(ctxTop, SCENARIO_1, pointsTop, wTop, simTime1);
+
+      // 3-Coach Train
+      draw3CoachTrain(ctxTop, train1.x, pointsTop, COLORS.trainTop);
+
+      // 2. BOTTOM SIMULATION (1 Consolidated Block on Violet Track)
+      const pointsBot = getTrackPoints(wBot, hBot);
+      drawTrack(ctxBottom, pointsBot, COLORS.bottomTrack, COLORS.bottomTrackGlow);
+      drawStation(ctxBottom, "square", pointsBot[1].x, pointsBot[1].y);
+      drawStation(ctxBottom, "circle", pointsBot[4].x, pointsBot[4].y);
+
+      // Traffic light at start of block zone
+      const isGreen2 = simTime2 >= SCENARIO_2.greenTime;
+      const sigX2 = wBot * SCENARIO_2.signalXRatio;
+      const sigY2 = getYForX(pointsBot, sigX2);
+      drawSignal(ctxBottom, sigX2, sigY2, isGreen2);
+
+      // 1 Physical Barrier Block directly on rails
+      drawPhysicalBarrierBlocks(ctxBottom, SCENARIO_2, pointsBot, wBot, simTime2);
+
+      // 3-Coach Train
+      draw3CoachTrain(ctxBottom, train2.x, pointsBot, COLORS.trainBottom);
+    }
+
+    // -------------------------------------------------------------
+    // Physics & Time Step
+    // -------------------------------------------------------------
+    function updatePhysics(dt) {
+      const w = canvasTop.width / (window.devicePixelRatio || 1);
+
+      // Scenario 1: Halts at signal until all 3 blocks clear
+      if (isPlaying1) {
+        simTime1 += dt;
+
+        const stopX1 = w * SCENARIO_1.haltXRatio;
+        const isGreen1 = simTime1 >= SCENARIO_1.greenTime;
+
+        if (!isGreen1 && train1.x >= stopX1) {
+          train1.x = stopX1;
+        } else {
+          train1.x += SCENARIO_1.trainSpeed * dt;
+          // When train passes off screen, automatically reset Scenario 1
+          if (train1.x > w + 180) {
+            resetScenario1();
+          }
+        }
+      }
+
+      // Scenario 2: Halts briefly, resumes as single block clears
+      if (isPlaying2) {
+        simTime2 += dt;
+
+        const stopX2 = w * SCENARIO_2.haltXRatio;
+        const isGreen2 = simTime2 >= SCENARIO_2.greenTime;
+
+        if (!isGreen2 && train2.x >= stopX2) {
+          train2.x = stopX2;
+        } else {
+          train2.x += SCENARIO_2.trainSpeed * dt;
+          // When train passes off screen, automatically reset Scenario 2
+          if (train2.x > w + 180) {
+            resetScenario2();
+          }
+        }
+      }
+    }
+
+    // Animation Loop
+    function loop(timestamp) {
+      if (!isPlaying1 && !isPlaying2) {
+        lastTimestamp = 0;
+        return;
+      }
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const dt = Math.min(0.1, (timestamp - lastTimestamp) / 1000);
+      lastTimestamp = timestamp;
+
+      updatePhysics(dt);
+      render();
+
+      if (isPlaying1 || isPlaying2) {
+        requestAnimationFrame(loop);
+      }
+    }
+
+    function startLoopIfNeeded() {
+      lastTimestamp = 0;
+      requestAnimationFrame(loop);
+    }
+
+    // Scenario 1 Controls
+    btnPlay1.addEventListener("click", () => {
+      isPlaying1 = !isPlaying1;
+      if (isPlaying1) {
+        playText1.innerText = "Pause";
+        playIcon1.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        startLoopIfNeeded();
+      } else {
+        playText1.innerText = "Play";
+        playIcon1.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      }
+    });
+
+    btnReset1.addEventListener("click", () => {
+      resetScenario1();
+    });
+
+    // Scenario 2 Controls
+    btnPlay2.addEventListener("click", () => {
+      isPlaying2 = !isPlaying2;
+      if (isPlaying2) {
+        playText2.innerText = "Pause";
+        playIcon2.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        startLoopIfNeeded();
+      } else {
+        playText2.innerText = "Play";
+        playIcon2.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      }
+    });
+
+    btnReset2.addEventListener("click", () => {
+      resetScenario2();
+    });
+
+    // Initial Setup
+    resizeCanvases();
+    resetSimulation();
+  </script>
+</body>
+</html>

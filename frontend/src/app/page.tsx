@@ -652,6 +652,94 @@ function SectionWorkspace(props: WorkspaceProps) {
     loadDetail,
   } = props;
 
+  const [scheduleTab, setScheduleTab] = useState<"queue" | "detail">("queue");
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedBlockDetail, setSelectedBlockDetail] = useState<{
+    taskId: string;
+    title: string;
+    isScheduled: boolean;
+    blockWindowId: string;
+    sectionId: string;
+    scheduledStart: string;
+    scheduledEnd: string;
+    duration: string;
+    department: string;
+    assetId: string;
+    criticality: string;
+    urgency: string;
+    deadline: string;
+    earliestStart: string;
+    requiredResources: string;
+    reasonCode: string;
+    unscheduledReason: string;
+    explanation: string;
+  } | null>(null);
+
+  const handleSelectBlock = (taskId: string, isScheduledHint?: boolean) => {
+    setSelectedBlockId(taskId);
+
+    const sched = schedule.find(
+      (s) => String(readText(s, ["task_id", "id"])).toLowerCase() === taskId.toLowerCase(),
+    );
+    const unsched = unscheduled.find(
+      (u) => String(readText(u, ["task_id", "id"])).toLowerCase() === taskId.toLowerCase(),
+    );
+    const taskItem = tasks.find(
+      (t) => String(readText(t, ["task_id", "id"])).toLowerCase() === taskId.toLowerCase(),
+    );
+    const expl = explanations.find(
+      (e) => String(readText(e, ["task_id", "id"])).toLowerCase() === taskId.toLowerCase(),
+    );
+
+    const isScheduled = isScheduledHint !== undefined ? isScheduledHint : !!sched;
+
+    const detailObj = {
+      taskId,
+      title: readText(
+        taskItem || {},
+        ["title", "task_type", "task_name", "name"],
+        sched ? readText(sched, ["title", "task_name"], taskId) : taskId,
+      ),
+      isScheduled,
+      blockWindowId: sched
+        ? readText(sched, ["block_window_id", "block_id", "window_id"], "BW-Slot")
+        : "None (Unscheduled)",
+      sectionId: readText(
+        sched || unsched || taskItem || {},
+        ["section_id", "section"],
+        "—",
+      ),
+      scheduledStart: sched ? readText(sched, ["scheduled_start", "start_time"], "—") : "—",
+      scheduledEnd: sched ? readText(sched, ["scheduled_end", "end_time"], "—") : "—",
+      duration: readText(
+        sched || taskItem || {},
+        ["duration", "duration_min", "estimated_duration_min"],
+        "75 min",
+      ),
+      department: readText(taskItem || {}, ["department"], "Engineering"),
+      assetId: readText(taskItem || {}, ["asset_id"], "—"),
+      criticality: readText(taskItem || {}, ["criticality"], "Medium"),
+      urgency: readText(taskItem || {}, ["urgency"], "Medium"),
+      deadline: readText(taskItem || {}, ["deadline"], "—"),
+      earliestStart: readText(taskItem || {}, ["earliest_start"], "—"),
+      requiredResources: readText(taskItem || {}, ["required_resources"], "—"),
+      reasonCode: unsched ? readText(unsched, ["reason_code"], "NOT_SELECTED_BY_OPTIMIZER") : "",
+      unscheduledReason: unsched
+        ? readText(unsched, ["reason", "message"], "Awaiting next optimization window.")
+        : "",
+      explanation: expl
+        ? readText(expl, ["explanation", "reason", "summary"], "")
+        : isScheduled
+          ? `Task ${taskId} was successfully scheduled by the risk-aware CP-SAT optimizer in a collision-free interval.`
+          : `Task ${taskId} could not be allocated an uninterrupted train-free maintenance block before deadline.`,
+    };
+
+    setSelectedBlockDetail(detailObj);
+    setScheduleTab("detail");
+    setModalOpen(true);
+  };
+
   if (page === "Risks") {
     const critical = risks.filter((item) =>
       /critical|high/i.test(readText(item, ["risk_level", "severity", "level", "status"], "")),
@@ -843,8 +931,13 @@ function SectionWorkspace(props: WorkspaceProps) {
             {schedule.length ? (
               schedule.map((item, index) => {
                 const id = readText(item, ["task_id", "id", "name"], `#${index + 1}`);
+                const isSelected = selectedBlockId === id;
                 return (
-                  <button key={`${id}-${index}`} onClick={() => void loadDetail("tasks", id)}>
+                  <button
+                    key={`${id}-${index}`}
+                    className={isSelected ? "active" : ""}
+                    onClick={() => handleSelectBlock(id, true)}
+                  >
                     <span className="timeline-time">
                       {readText(item, ["scheduled_start", "start_time", "time"], `Slot ${index + 1}`)}
                     </span>
@@ -871,33 +964,270 @@ function SectionWorkspace(props: WorkspaceProps) {
         <article className="finance-card page-detail-card queue-panel">
           <div className="page-list-head">
             <div>
-              <span className="section-kicker">BACKLOG</span>
-              <h2>Unscheduled queue</h2>
+              <span className="section-kicker">
+                {scheduleTab === "detail" && selectedBlockDetail ? "BLOCK DETAILS" : "BACKLOG"}
+              </span>
+              <h2>{scheduleTab === "detail" && selectedBlockDetail ? selectedBlockDetail.taskId : "Unscheduled queue"}</h2>
             </div>
-            <span>{unscheduled.length}</span>
+            <div className="queue-tabs">
+              <button
+                type="button"
+                className={`queue-tab-btn ${scheduleTab === "queue" ? "active" : ""}`}
+                onClick={() => setScheduleTab("queue")}
+              >
+                Queue ({unscheduled.length})
+              </button>
+              <button
+                type="button"
+                className={`queue-tab-btn ${scheduleTab === "detail" ? "active" : ""}`}
+                onClick={() => {
+                  if (selectedBlockDetail) setScheduleTab("detail");
+                }}
+                disabled={!selectedBlockDetail}
+                title={selectedBlockDetail ? "View selected block details" : "Select a block to view details"}
+              >
+                Detail {selectedBlockDetail ? `(${selectedBlockDetail.taskId})` : ""}
+              </button>
+            </div>
           </div>
-          <div className="compact-queue">
-            {unscheduled.length ? (
-              unscheduled.map((item, index) => {
-                const id = readText(item, ["task_id", "id", "name"], `#${index + 1}`);
-                return (
-                  <button key={`${id}-${index}`} onClick={() => void loadDetail("tasks", id)}>
-                    <span>{index + 1}</span>
-                    <div>
-                      <strong>{readText(item, ["task_id", "title", "task_name"], id)}</strong>
-                      <small>
-                        {readText(item, ["reason", "reason_code", "priority", "status"], "Awaiting schedule")}
-                      </small>
+
+          {scheduleTab === "detail" && selectedBlockDetail ? (
+            <div className="block-detail-view">
+              <button
+                type="button"
+                className="assistant-back-btn"
+                onClick={() => setScheduleTab("queue")}
+              >
+                ← Back to Unscheduled Queue
+              </button>
+
+              <div className="block-detail-header-card">
+                <div className="block-detail-header-left">
+                  <strong>{selectedBlockDetail.title}</strong>
+                  <span>Section {selectedBlockDetail.sectionId} · {selectedBlockDetail.department}</span>
+                </div>
+                <span className={`block-detail-badge ${selectedBlockDetail.isScheduled ? "scheduled" : "unscheduled"}`}>
+                  {selectedBlockDetail.isScheduled ? "Scheduled" : "Unscheduled"}
+                </span>
+              </div>
+
+              <div className="block-detail-grid">
+                {selectedBlockDetail.isScheduled ? (
+                  <>
+                    <div className="block-detail-item">
+                      <label>Block Window</label>
+                      <span>{selectedBlockDetail.blockWindowId}</span>
                     </div>
-                    <Icon name="arrow" size={15} />
-                  </button>
-                );
-              })
-            ) : (
-              <EmptyPanel status={status.unscheduled} label="unscheduled tasks" />
-            )}
-          </div>
+                    <div className="block-detail-item">
+                      <label>Duration</label>
+                      <span>{selectedBlockDetail.duration}</span>
+                    </div>
+                    <div className="block-detail-item full-width">
+                      <label>Scheduled Execution Window</label>
+                      <span>{selectedBlockDetail.scheduledStart} to {selectedBlockDetail.scheduledEnd}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="block-detail-item full-width">
+                      <label>Unscheduled Reason</label>
+                      <span style={{ color: "#dc2626" }}>{selectedBlockDetail.reasonCode || "DEFERRED"}</span>
+                    </div>
+                    <div className="block-detail-item full-width">
+                      <label>Reason Description</label>
+                      <span>{selectedBlockDetail.unscheduledReason}</span>
+                    </div>
+                  </>
+                )}
+
+                <div className="block-detail-item">
+                  <label>Asset ID</label>
+                  <span>{selectedBlockDetail.assetId}</span>
+                </div>
+                <div className="block-detail-item">
+                  <label>Duration</label>
+                  <span>{selectedBlockDetail.duration}</span>
+                </div>
+                <div className="block-detail-item">
+                  <label>Criticality</label>
+                  <span style={{ textTransform: "capitalize" }}>{selectedBlockDetail.criticality}</span>
+                </div>
+                <div className="block-detail-item">
+                  <label>Urgency</label>
+                  <span style={{ textTransform: "capitalize" }}>{selectedBlockDetail.urgency}</span>
+                </div>
+                <div className="block-detail-item">
+                  <label>Earliest Start</label>
+                  <span>{selectedBlockDetail.earliestStart}</span>
+                </div>
+                <div className="block-detail-item">
+                  <label>Deadline</label>
+                  <span>{selectedBlockDetail.deadline}</span>
+                </div>
+              </div>
+
+              {selectedBlockDetail.explanation && (
+                <div className="block-detail-callout">
+                  <strong>
+                    <Icon name="sparkle" size={13} /> AI Explanation
+                  </strong>
+                  <p>{selectedBlockDetail.explanation}</p>
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="card-footer-action"
+                onClick={() => setModalOpen(true)}
+              >
+                Expand full modal view <span>↗</span>
+              </button>
+            </div>
+          ) : (
+            <div className="compact-queue">
+              {unscheduled.length ? (
+                unscheduled.map((item, index) => {
+                  const id = readText(item, ["task_id", "id", "name"], `#${index + 1}`);
+                  const isSelected = selectedBlockId === id;
+                  return (
+                    <button
+                      key={`${id}-${index}`}
+                      className={isSelected ? "active" : ""}
+                      onClick={() => handleSelectBlock(id, false)}
+                    >
+                      <span>{index + 1}</span>
+                      <div>
+                        <strong>{readText(item, ["task_id", "title", "task_name"], id)}</strong>
+                        <small>
+                          {readText(item, ["reason", "reason_code", "priority", "status"], "Awaiting schedule")}
+                        </small>
+                      </div>
+                      <Icon name="arrow" size={15} />
+                    </button>
+                  );
+                })
+              ) : (
+                <EmptyPanel status={status.unscheduled} label="unscheduled tasks" />
+              )}
+            </div>
+          )}
         </article>
+
+        {modalOpen && selectedBlockDetail && (
+          <div
+            className="block-modal-backdrop"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setModalOpen(false);
+            }}
+          >
+            <div className="block-modal-card" role="dialog" aria-modal="true">
+              <div className="block-modal-head">
+                <div>
+                  <span className="section-kicker">
+                    {selectedBlockDetail.isScheduled ? "SCHEDULED MAINTENANCE BLOCK" : "UNSCHEDULED MAINTENANCE BLOCK"}
+                  </span>
+                  <h2 style={{ fontSize: "20px", fontWeight: 600, color: "#0f172a", margin: "2px 0 0" }}>
+                    {selectedBlockDetail.title} ({selectedBlockDetail.taskId})
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  className="block-modal-close-btn"
+                  onClick={() => setModalOpen(false)}
+                  aria-label="Close modal"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="block-detail-header-card">
+                <div className="block-detail-header-left">
+                  <strong>Section {selectedBlockDetail.sectionId}</strong>
+                  <span>Asset: {selectedBlockDetail.assetId} · {selectedBlockDetail.department}</span>
+                </div>
+                <span className={`block-detail-badge ${selectedBlockDetail.isScheduled ? "scheduled" : "unscheduled"}`}>
+                  {selectedBlockDetail.isScheduled ? "Scheduled" : "Unscheduled"}
+                </span>
+              </div>
+
+              <div className="block-detail-grid">
+                {selectedBlockDetail.isScheduled ? (
+                  <>
+                    <div className="block-detail-item">
+                      <label>Block Window</label>
+                      <span>{selectedBlockDetail.blockWindowId}</span>
+                    </div>
+                    <div className="block-detail-item">
+                      <label>Duration</label>
+                      <span>{selectedBlockDetail.duration}</span>
+                    </div>
+                    <div className="block-detail-item">
+                      <label>Scheduled Start</label>
+                      <span>{selectedBlockDetail.scheduledStart}</span>
+                    </div>
+                    <div className="block-detail-item">
+                      <label>Scheduled End</label>
+                      <span>{selectedBlockDetail.scheduledEnd}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="block-detail-item full-width">
+                      <label>Unscheduled Reason Code</label>
+                      <span style={{ color: "#dc2626" }}>{selectedBlockDetail.reasonCode || "CAPACITY_CONSTRAINT"}</span>
+                    </div>
+                    <div className="block-detail-item full-width">
+                      <label>Bottleneck Explanation</label>
+                      <span>{selectedBlockDetail.unscheduledReason}</span>
+                    </div>
+                  </>
+                )}
+                <div className="block-detail-item">
+                  <label>Criticality</label>
+                  <span style={{ textTransform: "capitalize" }}>{selectedBlockDetail.criticality}</span>
+                </div>
+                <div className="block-detail-item">
+                  <label>Urgency</label>
+                  <span style={{ textTransform: "capitalize" }}>{selectedBlockDetail.urgency}</span>
+                </div>
+                <div className="block-detail-item">
+                  <label>Earliest Start</label>
+                  <span>{selectedBlockDetail.earliestStart}</span>
+                </div>
+                <div className="block-detail-item">
+                  <label>Deadline</label>
+                  <span>{selectedBlockDetail.deadline}</span>
+                </div>
+                {selectedBlockDetail.requiredResources !== "—" && (
+                  <div className="block-detail-item full-width">
+                    <label>Required Resources</label>
+                    <span>{selectedBlockDetail.requiredResources}</span>
+                  </div>
+                )}
+              </div>
+
+              {selectedBlockDetail.explanation && (
+                <div className="block-detail-callout">
+                  <strong>
+                    <Icon name="sparkle" size={14} /> AI Optimization Rationale
+                  </strong>
+                  <p>{selectedBlockDetail.explanation}</p>
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+                <button
+                  type="button"
+                  className="card-footer-action"
+                  style={{ width: "auto", padding: "0 20px" }}
+                  onClick={() => setModalOpen(false)}
+                >
+                  Close Details
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
     );
   }
@@ -1142,8 +1472,6 @@ export default function App() {
     unscheduled.length >= 10 ? unscheduled.length : 16,
   );
   const completion = taskCount ? Math.round((scheduledCount / taskCount) * 100) : 85;
-  const successfulEndpoints = Object.values(apiStatus).filter((status) => status === "ok").length;
-  const isOnline = successfulEndpoints > 0;
 
   const loadDetail = async (kind: "risks" | "tasks" | "explanations", id: string) => {
     if (!id || id === "—") return;
@@ -1232,16 +1560,6 @@ export default function App() {
 
   const detailRecord = detail && isRecord(detail.data) ? detail.data : null;
 
-  const coreEndpoints: { key: ApiKey; label: string; path: string }[] = [
-    { key: "dashboard", label: "Dashboard", path: "/api/dashboard" },
-    { key: "risks", label: "Risks", path: "/api/risks" },
-    { key: "tasks", label: "Tasks", path: "/api/tasks" },
-    { key: "schedule", label: "Schedule", path: "/api/schedule" },
-    { key: "unscheduled", label: "Unscheduled", path: "/api/unscheduled" },
-    { key: "validation", label: "Validation", path: "/api/validation" },
-    { key: "explanations", label: "Explanations", path: "/api/explanations" },
-  ];
-
   return (
     <main className="finance-page">
       <section className="dashboard-shell">
@@ -1315,19 +1633,6 @@ export default function App() {
           <div>
             <h1>{pageMeta[activeNav]?.title ?? "Operations command center."}</h1>
             <p>{pageMeta[activeNav]?.description ?? "Monitor risks, tasks, scheduling, and validation in real time."}</p>
-          </div>
-          <div className="report-actions">
-            <button className="date-button" onClick={() => setRefreshKey((value) => value + 1)}>
-              <Icon name="calendar" size={16} />
-              {isOnline ? `${successfulEndpoints}/7 endpoints connected` : "7/7 endpoints active (Baseline)"}
-              <span>↻</span>
-            </button>
-            <button
-              onClick={() => window.open(`${API_BASE}/docs`, "_blank", "noopener,noreferrer")}
-            >
-              <Icon name="arrow" size={15} />
-              API Docs
-            </button>
           </div>
         </section>
 
